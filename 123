@@ -1,0 +1,143 @@
+class TopLevelTag:
+    def __init__(self, tag, **kwargs):
+        self.tag = tag
+        self.children = []
+    def __iadd__(self, other): 
+        self.children.append(other)
+        return self
+    def __enter__(self): 
+        return self
+    def __exit__(self, *args, **kwargs):
+        pass
+    def __str__(self): 
+        html = "<%s>\n" % self.tag
+        for child in self.children:
+            html += str(child)
+        html += "\n</%s>" % self.tag
+        return html
+
+
+class HTML:
+    def __init__(self, output=None):
+        self.output = output  
+        self.children = []
+    def __iadd__(self, other):
+        self.children.append(other)
+        return self
+    def __enter__(self):
+        return self
+    def __exit__(self, *args, **kwargs):
+        if self.output is not None:  
+            with open(self.output, "w") as fp:
+                fp.write(str(self))
+        else:
+            print(self)
+    def __str__(self):
+        html = "<!DOCTYPE html>"
+        html += str("\n")
+        html += "<html "
+        html += str('"lang="ru"')
+        html += str(">\n")
+        for child in self.children:
+            html += str(child)
+        html += "\n</html>"
+        return html
+
+
+class Tag:
+    def __init__(self, tag, is_single=False, klass=None, **kwargs):
+        self.tag = tag
+        self.text = ""
+        self.attributes = {} 
+        self.is_single = is_single
+        self.children = []
+        if klass is not None:    
+            self.attributes["class"] = " ".join(klass)
+        for attr, value in kwargs.items():   
+            if "_" in attr:  
+                attr = attr.replace("_", "-")
+            self.attributes[attr] = value
+
+    def __enter__(self, *args, **kwargs):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        pass
+
+    def __iadd__(self, other):
+        self.children.append(other)
+        return self
+            
+    def __str__(self):
+        attrs = []  
+        for attribute, value in self.attributes.items():
+             attrs.append('%s="%s"' % (attribute, value))
+        attrs = " ".join(attrs)
+        if len(self.children) > 0:  
+             opening = "\n<{tag} {attrs}>".format(tag=self.tag, attrs=attrs)
+             if self.text:
+                internal = "%s" % self.text
+             else:
+                internal = ""
+             for child in self.children:
+                internal += str(child)  
+             ending = "\n</%s>" % self.tag
+             return opening + internal + ending
+        else:  
+            if self.is_single:
+                return "\n<{tag} {attrs}/>".format(tag=self.tag, attrs=attrs)
+            else:
+                return "\n<{tag} {attrs}>{text}</{tag}>".format(tag=self.tag, attrs=attrs, text=self.text)
+
+def main(output=None):
+
+
+   
+      with HTML(output=output) as doc:
+        with TopLevelTag("head") as head:
+            with Tag("title") as title:
+                title.text = "Привет!"
+                head += title
+            doc += head
+
+        with TopLevelTag("body") as body: 
+            with Tag("h1", klass=("main-text",)) as h1:
+                h1.text = "ДОМАШКА"
+                body += h1
+
+            with Tag("h2", klass=("main-text-two",)) as h2:
+                h2.text = "МОДУЛЬ B3"
+                body += h2      
+
+            with Tag("div", klass=("container", "container-fluid"), id="lead2") as div:
+                with Tag("p") as paragraph: 
+                    paragraph.text = "СЛОЖНОЕ ЗАДАНИЕ!"
+                    div += paragraph 
+
+                with Tag(
+                    "img", is_single=True, src="../test.jpg", data_image="responsive") as img:
+                    div += img  
+                body += div 
+
+            with Tag("div", klass=("container","container-fluid"), id="lead3") as div:
+                with Tag("p") as paragraph: 
+                    paragraph.text = "НО РЕШАЕМОЕ!!"
+                    div += paragraph 
+
+                with Tag(
+                    "img", is_single=True, src="../test2.jpg", data_image="responsive") as img:
+                    div += img  
+                body += div 
+
+
+
+            doc += body
+
+
+            
+
+if __name__ == "__main__":
+    main()
+
+
+
